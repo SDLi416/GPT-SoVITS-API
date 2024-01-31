@@ -1,10 +1,9 @@
 # Base CUDA image
 FROM cnstark/pytorch:2.0.1-py3.9.17-cuda11.8.0-ubuntu20.04
 
-LABEL maintainer="breakstring@hotmail.com"
-LABEL version="dev-20240127"
-LABEL description="Docker image for GPT-SoVITS"
-
+LABEL maintainer="icubic3@gmail.com"
+LABEL version="dev-20240127-api"
+LABEL description="Docker image for GPT-SoVITS API"
 
 # Install 3rd party apps
 ENV DEBIAN_FRONTEND=noninteractive
@@ -24,22 +23,7 @@ RUN pip install -r requirements.txt
 # Download models
 RUN chmod +x /workspace/Docker/download.sh && /workspace/Docker/download.sh
 
-# Download moda ASR related
-RUN python /workspace/Docker/download.py
+# Set environment variable for NLTK data
+ENV NLTK_DATA /workspace/nltk_data
 
-# Download nltk realted
-RUN python -m nltk.downloader averaged_perceptron_tagger
-RUN python -m nltk.downloader cmudict
-
-
-EXPOSE 9870
-EXPOSE 9871
-EXPOSE 9872
-EXPOSE 9873
-EXPOSE 9874
-
-VOLUME /workspace/output
-VOLUME /workspace/logs
-VOLUME /workspace/SoVITS_weights
-
-CMD ["python", "webui.py"]
+CMD ["python", "./tts_api.py"]

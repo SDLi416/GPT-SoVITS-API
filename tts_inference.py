@@ -3,15 +3,15 @@ import re, os
 import numpy as np
 import torch
 import librosa
-from module.models import SynthesizerTrn
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
-from feature_extractor import cnhubert
-from text.cleaner import clean_text
-from text import cleaned_text_to_sequence
+from GPT_SoVITS.module.models import SynthesizerTrn
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.feature_extractor import cnhubert
+from GPT_SoVITS.text.cleaner import clean_text
+from GPT_SoVITS.text import cleaned_text_to_sequence
 import config as global_config
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-from my_utils import load_audio
-from module.mel_processing import spectrogram_torch
+from GPT_SoVITS.my_utils import load_audio
+from GPT_SoVITS.module.mel_processing import spectrogram_torch
 
 
 g_config = global_config.Config()

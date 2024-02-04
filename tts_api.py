@@ -16,6 +16,7 @@ from tts_inference import start_infer, start_few_shot_infer
 class TextToSpeechRequest(BaseModel):
     speaker: str = Field('yuze', description="说话者")
     text: str = Field(..., description="需要转换的文字")
+    fewshot: bool = Field(False, description="是否使用few shot模式")
     language: str = Field('Chinese', description="语言")
     # speed: float = Field(1.0, description="语速")
     # model_name: str = "tts_model"  # 设置默认模型名称
@@ -88,7 +89,7 @@ async def generate_audio(speaker, text, language, few_shot=False, max_retries=3)
 
 @app.post("/tts")
 async def text_to_speech(request: TextToSpeechRequest):
-    stream_buffer, duration = await generate_audio(request.speaker, request.text, request.language)
+    stream_buffer, duration = await generate_audio(request.speaker, request.text, request.language, request.fewshot)
     if stream_buffer:
         response = StreamingResponse(stream_buffer, media_type="audio/mpeg")
         response.headers["Duration"] = str(duration)

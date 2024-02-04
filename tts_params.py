@@ -51,3 +51,16 @@ def get_tts_model_params(name: str) -> TTSModel:
         model.prompt_text = config["prompt_text"]
         model.prompt_language = config["prompt_language"]
     return model
+
+# 使用底模进行few shot tts的参数
+def get_few_shot_tts_model_params(name: str) -> TTSModel:
+    model_dir = Path("models")
+    model = TTSModel()
+    model.ref_wav_path = f"{model_dir}/others/{name}/ref.wav"
+    model.sovits_weights_path = f"{model_dir}/others/sovits_weights.pth"
+    model.gpt_weights_path = f"{model_dir}/others/gpt_weights.ckpt"
+    with open(f"{model_dir}/others/{name}/config.json", 'r', encoding='utf-8') as f:
+        config = json.load(f)
+        model.prompt_text = config["prompt_text"]
+        model.prompt_language = config["prompt_language"]
+    return model

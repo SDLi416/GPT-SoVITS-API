@@ -9,8 +9,9 @@ from pydantic import BaseModel, Field
 import io
 import soundfile as sf
 from pydub import AudioSegment
+import numpy as np
 
-from tts_inference import start_infer
+from tts_inference import start_infer, start_few_shot_infer
 
 class TextToSpeechRequest(BaseModel):
     speaker: str = Field('yuze', description="说话者")
@@ -21,7 +22,34 @@ class TextToSpeechRequest(BaseModel):
 
 app = FastAPI()
 
+# 检查音频是否有效
+def is_audio_valid(audio_data, sampling_rate):
+    # 检查音频数据是否非空
+    if audio_data is None or len(audio_data) == 0:
+        return False
+
+    # 检查音频是否几乎完全静音
+    # 这里假设音频数据是单通道；如果是多通道，需要相应调整
+    if np.max(np.abs(audio_data)) < 0.01:  # 阈值可根据实际情况调整
+        return False
+
+    # 尝试解码音频数据（可选）
+    try:
+        buffer = io.BytesIO()
+        sf.write(buffer, audio_data, sampling_rate, format='wav')
+        buffer.seek(0)
+        # 如果无法读取音频数据，soundfile会抛出错误
+        _, _ = sf.read(buffer)
+    except Exception as e:
+        return False
+
+    # 如果所有检查都通过，则认为音频有效
+    return True
+
 def process_audio_in_memory(audio_data, sampling_rate):
+    if not is_audio_valid(audio_data, sampling_rate):
+        return None, 0  # 音频无效，直接返回None和0时长
+
     # 将音频数据写入buffer
     buffer = io.BytesIO()
 
@@ -43,30 +71,40 @@ def process_audio_in_memory(audio_data, sampling_rate):
 
     return (mp3_buffer, duration)
 
+# 加入重试机制的生成音频函数
+async def generate_audio(speaker, text, language, few_shot=False, max_retries=3):
+    for _ in range(max_retries):
+        try:
+            if few_shot:
+                sampling_rate, audio_data = start_few_shot_infer(speaker, text, language)
+            else:
+                sampling_rate, audio_data = start_infer(speaker, text, language)
+            stream_buffer, duration = process_audio_in_memory(audio_data, sampling_rate)
+            if stream_buffer:
+                return stream_buffer, duration
+        except Exception as e:
+            print(f"Error generating audio: {e}")
+    return None, 0  # 所有尝试都失败后返回None
+
 @app.post("/tts")
 async def text_to_speech(request: TextToSpeechRequest):
-    # 运行模型推理
-    try:
-        sampling_rate, audio_data = start_infer(request.speaker, request.text, request.language)
-
-        # wav = io.BytesIO()
-
-        # sf.write(wav, audio_data, sampling_rate, format="wav")
-
-        # wav.seek(0)
-
-        # return StreamingResponse(wav, media_type="audio/wav")
-        # 将模型输出转换为适当的音频格式
-        # 示例中假设输出是音频数据的 numpy 数组
-        stream_buffer, duration = process_audio_in_memory(audio_data, sampling_rate)
+    stream_buffer, duration = await generate_audio(request.speaker, request.text, request.language)
+    if stream_buffer:
         response = StreamingResponse(stream_buffer, media_type="audio/mpeg")
         response.headers["Duration"] = str(duration)
-        
         return response
+    else:
+        raise HTTPException(status_code=500, detail="Failed to generate valid audio after multiple attempts")
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+@app.post("/tts-ext")
+async def text_to_speech_extended(request: TextToSpeechRequest):
+    stream_buffer, duration = await generate_audio(request.speaker, request.text, request.language, few_shot=True)
+    if stream_buffer:
+        response = StreamingResponse(stream_buffer, media_type="audio/mpeg")
+        response.headers["Duration"] = str(duration)
+        return response
+    else:
+        raise HTTPException(status_code=500, detail="Failed to generate valid audio after multiple attempts")
 
 if __name__ == "__main__":
     import uvicorn

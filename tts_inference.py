@@ -1,4 +1,4 @@
-from tts_params import get_tts_model_params, TTSModel
+from tts_params import get_tts_model_params, get_few_shot_tts_model_params, TTSModel
 import re, os
 import numpy as np
 import torch
@@ -19,7 +19,6 @@ is_half = g_config.is_half
 device = g_config.infer_device
 
 # AVAILABLE_COMPUTE = "cuda" if torch.cuda.is_available() else "cpu"
-
 
 cnhubert_base_path = g_config.cnhubert_path
 
@@ -317,10 +316,26 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         np.int16
     )
 
-
+# 有基础模型的tts，就是经过微调的
 def start_infer(speaker, text, language):
     # 获取模型参数
     model = get_tts_model_params(speaker)
+    load_weights(model)
+
+    try:
+        with torch.no_grad():
+            gen = get_tts_wav(model.ref_wav_path, model.prompt_text, model.prompt_language, text, dict_language[language])
+            sampling_rate, audio_data = next(gen)
+    except Exception as e:
+        print(e)
+        raise e
+
+    return (sampling_rate, audio_data)
+
+# few shot 推理，就是使用底模的tts，适用于临时活动和用户自定义声音
+def start_few_shot_infer(speaker, text, language):
+    # 获取模型参数
+    model = get_few_shot_tts_model_params(speaker)
     load_weights(model)
 
     try:

@@ -7,6 +7,8 @@ LABEL description="Docker image for GPT-SoVITS API"
 
 # Install 3rd party apps
 ENV DEBIAN_FRONTEND=noninteractive
+# Set environment variable for NLTK data
+ENV NLTK_DATA /workspace/nltk_data
 ENV TZ=Etc/UTC
 RUN apt-get update && \
     apt-get install -y --no-install-recommends tzdata ffmpeg libsox-dev parallel aria2 git git-lfs && \
@@ -22,8 +24,5 @@ RUN pip install -r requirements.txt
 
 # Download models
 RUN chmod +x /workspace/Docker/download.sh && /workspace/Docker/download.sh
-
-# Set environment variable for NLTK data
-ENV NLTK_DATA /workspace/nltk_data
 
 CMD ["python", "./tts_api.py"]

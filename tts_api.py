@@ -74,16 +74,20 @@ def process_audio_in_memory(audio_data, sampling_rate):
 
 # 加入重试机制的生成音频函数
 async def generate_audio(speaker, text, language, few_shot=False, max_retries=3):
+    print(f"开始生成音频: speaker: {speaker}, text: {text}, language: {language}, few_shot: {few_shot}")
     for _ in range(max_retries):
+        print(f"重试次数: {_}")
         try:
             if few_shot:
                 sampling_rate, audio_data = start_few_shot_infer(speaker, text, language)
             else:
                 sampling_rate, audio_data = start_infer(speaker, text, language)
             stream_buffer, duration = process_audio_in_memory(audio_data, sampling_rate)
+            print(f"生成音频成功！音频时长: {duration}")
             if stream_buffer:
                 return stream_buffer, duration
         except Exception as e:
+            print(f"生成音频失败: {e}, speaker: {speaker}, text: {text}, language: {language}")
             print(f"Error generating audio: {e}")
     return None, 0  # 所有尝试都失败后返回None
 

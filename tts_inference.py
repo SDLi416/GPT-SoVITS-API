@@ -219,8 +219,20 @@ def load_weights(tts_model: TTSModel):
     total = sum([param.nelement() for param in t2s_model.parameters()])
     print("Number of parameter: %.2fM" % (total / 1e6))
 
+#按标点符号分割
+def cut5(inp):
+    # if not re.search(r'[^\w\s]', inp[-1]):
+    # inp += '。'
+    inp = inp.strip("\n")
+    punds = r'[,.;?!、，。？！;：]'
+    items = re.split(f'({punds})', inp)
+    items = ["".join(group) for group in zip(items[::2], items[1::2])]
+    opt = "\n".join(items)
+    return opt
+
 
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language):
+    text_language = dict_language[text_language]
     prompt_text = prompt_text.strip("\n")
     if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_language != "en" else "."
     text = text.strip("\n")
@@ -253,7 +265,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         phones1, word2ph1, norm_text1 = clean_text_inf(prompt_text, prompt_language)
     else:
         phones1, word2ph1, norm_text1 = nonen_clean_text_inf(prompt_text, prompt_language)
+    text = cut5(text)
     text = text.replace("\n\n", "\n").replace("\n\n", "\n").replace("\n\n", "\n")
+    print(f"实际输入的目标文本(切句后): {text}")
     texts = text.split("\n")
     audio_opt = []
     if prompt_language == "en":
@@ -265,6 +279,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         if (len(text.strip()) == 0):
             continue
         if (text[-1] not in splits): text += "。" if text_language != "en" else "."
+        print(f"实际输入的目标文本(每句): {text}")
         if text_language == "en":
             phones2, word2ph2, norm_text2 = clean_text_inf(text, text_language)
         else:

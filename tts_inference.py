@@ -224,7 +224,7 @@ def cut5(inp):
     # if not re.search(r'[^\w\s]', inp[-1]):
     # inp += '。'
     inp = inp.strip("\n")
-    punds = r'[,.;?!、，。？！;：]'
+    punds = r'[^\w\s]+'
     items = re.split(f'({punds})', inp)
     items = ["".join(group) for group in zip(items[::2], items[1::2])]
     opt = "\n".join(items)
@@ -265,6 +265,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         phones1, word2ph1, norm_text1 = clean_text_inf(prompt_text, prompt_language)
     else:
         phones1, word2ph1, norm_text1 = nonen_clean_text_inf(prompt_text, prompt_language)
+        
+    # 处理掉一些会导致报错的字符
+    text = re.sub(r'[\^…]', '', text)
     text = cut5(text)
     text = text.replace("\n\n", "\n").replace("\n\n", "\n").replace("\n\n", "\n")
     print(f"实际输入的目标文本(切句后): {text}")
